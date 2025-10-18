@@ -268,7 +268,7 @@ def train_bpe(
 if __name__ == "__main__":
     ## test multi-processing ##
     import time
-    input_path = "tests/fixtures/" +"tinystories_sample_5M.txt"
+    input_path = "../data/" +"TinyStoriesV2-GPT4-train.txt"
     start_time = time.time()
     train_bpe(input_path,vocab_size=500,special_tokens=["<|endoftext|>"])
     end_time = time.time()
