@@ -95,11 +95,11 @@ class BPETokenizer(Tokenizer):
     @classmethod
     def from_files(cls,vocab_filepath,merges_filepath,special_tokens=None):
         ## 从文件加载vocab和merges, 返回实例 ##
-        vocab:dict[bytes,int] = {}
+        vocab:dict[int,bytes] = {}
         with open(vocab_filepath,'r',encoding='utf-8') as f:
             content = json.load(f)
         for key,value in content.items():
-            vocab[key.encode("utf-8",errors="ignore")] = value
+            vocab[value] = key.encode("utf-8",errors="ignore")
         del content
         merges:list[tuple[bytes,bytes]] = []
         with open(merges_filepath,"rb") as f:
@@ -129,24 +129,27 @@ class BPETokenizer(Tokenizer):
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
-            pretokens.append(new_pretoken)
+            #pretokens.append(new_pretoken)
+            pretokens.extend(new_pretoken)
+        
+        return self._merge_fast(pretokens,inverted_vocab)
 
         # merge:
-        for i,pretoken in enumerate(pretokens):
-            for pair in self.merges:
-                new_idx = inverted_vocab[pair[0] + pair[1]]
-                new_token = []
-                j = 0
-                while j< len(pretoken):
-                    if j + 1 < len(pretoken) and pretoken[j] == pair[0] and pretoken[j + 1] == pair[1]:
-                        new_token.append(new_idx)
-                        j += 2
-                    else:
-                        new_token.append(pretoken[j])
-                        j += 1
-                pretoken = new_token
-            pretokens[i] = pretoken
-        return [token for pretoken in pretokens for token in pretoken]
+        # for i,pretoken in enumerate(pretokens):
+        #     for pair in self.merges:
+        #         new_idx = inverted_vocab[pair[0] + pair[1]]
+        #         new_token = []
+        #         j = 0
+        #         while j< len(pretoken):
+        #             if j + 1 < len(pretoken) and pretoken[j] == pair[0] and pretoken[j + 1] == pair[1]:
+        #                 new_token.append(new_idx)
+        #                 j += 2
+        #             else:
+        #                 new_token.append(pretoken[j])
+        #                 j += 1
+        #         pretoken = new_token
+        #     pretokens[i] = pretoken
+        # return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
@@ -173,7 +176,6 @@ class BPETokenizer(Tokenizer):
         #     del doc
         #     return doc_encodes
         # else:
-            
         #     delimiter_pattern = "|".join(re.escape(token) for token in self.special_tokens)
         #     docs = (re.split(delimiter_pattern,text))
         #     doc_encodes = []
@@ -206,16 +208,17 @@ class BPETokenizer(Tokenizer):
         # text = all_bytes.decode('utf-8', errors='replace')
         # return text
         
-        return_byte = b''
+        tokens = b''
         vocab_size = len(self.vocab)
         replacement_char = "\uFFFD"
         for id in ids:
+            return_byte = b''
             if id > vocab_size:
                 return_byte += bytes(replacement_char,encoding="utf-8")
             else:
                 return_byte += self.vocab[id]
-
-        return return_byte.decode("utf-8",errors="replace")
+            tokens += return_byte
+        return tokens.decode("utf-8",errors="replace")
         
     def _merge_fast(self,tokens:list[int],inverted_vocab:dict[bytes,int])->list[int]:
         # build merge map: merge pair to id
@@ -289,11 +292,11 @@ if __name__ == "__main__":
     # print(tokenizer.vocab)
     # print(tokenizer.merges[:100]) 
 
-    test_string = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
+    test_string = "Hello, how are you?"
     ids = tokenizer.encode(test_string)
     print(ids)
-    string = tokenizer.decode(ids)
-    print(test_string == string)
+    tokenized_string = [tokenizer.decode([x]) for x in ids]
+    print(tokenized_string)
 
 
 
