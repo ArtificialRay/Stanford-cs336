@@ -130,7 +130,7 @@ class BPETokenizer(Tokenizer):
                     new_pretoken.append(index)
 
             pretokens.append(new_pretoken)
-        return self._merge_fast(pretokens)
+        return self._merge_fast(pretokens,inverted_vocab)
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
         # pretokens = [] #list[list[int]]
@@ -200,7 +200,7 @@ class BPETokenizer(Tokenizer):
 
         return return_byte.decode("utf-8",errors="replace")
         
-    def _merge_fast(self,tokens:list[int])->list[int]:
+    def _merge_fast(self,tokens:list[int],inverted_vocab:dict[bytes,int])->list[int]:
         # build merge map: merge pair to id
         merge_map:dict[tuple[bytes,bytes],int] = {}
         for pair in self.merges:
