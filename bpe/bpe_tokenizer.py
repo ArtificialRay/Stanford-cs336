@@ -204,7 +204,7 @@ class BPETokenizer(Tokenizer):
         # build merge map: merge pair to id
         merge_map:dict[tuple[bytes,bytes],int] = {}
         for pair in self.merges:
-            merge_map[pair] = self.vocab[pair[0] + pair[1]]
+            merge_map[pair] = inverted_vocab[pair[0] + pair[1]]
         # all possible merged positions
         positions = defaultdict(list)
         for i in range(len(tokens)-1):
