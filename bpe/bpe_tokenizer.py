@@ -39,23 +39,44 @@ def split_by_special_tokens(text:str,special_tokens:list[str])->list[str]:
         parts = re.split('('+delimiter_pattern+')',text)
     return parts
 
-def pretokenize(text:str,special_tokens:list[str])->list[bytes]:
+# def pretokenize(text:str,special_tokens:list[str])->list[bytes]:
+#     """
+#     separating text into pretokens, and treat special token as independent pre_tokens
+#     """
+#     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+#     parts = split_by_special_tokens(text,special_tokens)
+#     token_list = []
+#     for part in parts:
+#         if part == b'':
+#             continue
+#         if part in special_tokens:
+#             token_list.extend([part.encode('utf-8',errors="ignore")])
+#         else:
+#             str_tokens = re.finditer(PAT,part)
+#             part_tokens = [s.group().encode('utf-8',errors="ignore") for s in str_tokens]
+#             token_list.extend(part_tokens)
+#     return token_list
+
+def pretokenize(text: str, special_tokens: list[str], drop_special_token: bool = True) -> list[bytes]:
     """
-    separating text into pretokens, and treat special token as independent pre_tokens
+    Seperating text into pretokens
+    Special tokens are independent pretokens
     """
+    parts = split_by_special_tokens(text, special_tokens)
+
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    parts = split_by_special_tokens(text,special_tokens)
-    token_list = []
+    tokens_list = []
     for part in parts:
-        if part == b'':
-            continue
         if part in special_tokens:
-            token_list.extend([part.encode('utf-8',errors="ignore")])
+            if not drop_special_token:  # Keep special tokens, otherwise ignore
+                spec_tok_bytes = part.encode('utf-8')
+                tokens_list.append([spec_tok_bytes])
         else:
-            str_tokens = re.finditer(PAT,part)
-            part_tokens = [s.group().encode('utf-8',errors="ignore") for s in str_tokens]
-            token_list.extend(part_tokens)
-    return token_list
+            str_tokens = re.findall(PAT, part)
+            part_tokens = [s.encode('utf-8') for s in str_tokens]
+            tokens_list.append(part_tokens)
+    tokens = [token for part_tokens in tokens_list for token in part_tokens]
+    return tokens
 
 
 class Tokenizer:
@@ -66,10 +87,10 @@ class Tokenizer:
         raise NotImplementedError
 
 class BPETokenizer(Tokenizer):
-    def __init__(self,vocab:dict[bytes,int],merges:list[tuple[bytes,bytes]],special_tokens=None):
+    def __init__(self,vocab:dict[int,bytes],merges:list[tuple[bytes,bytes]],special_tokens:list[str]|None=None):
         self.vocab = vocab
         self.merges = merges
-        self.special_tokens = special_tokens
+        self.special_tokens = special_tokens or []
 
     @classmethod
     def from_files(cls,vocab_filepath,merges_filepath,special_tokens=None):
@@ -90,25 +111,44 @@ class BPETokenizer(Tokenizer):
     
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
-        
-        pretokens_byte = pretokenize(text,self.special_tokens)
+        inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
+        byte_pretokens = pretokenize(text, self.special_tokens, drop_special_token=False)   # list[bytes]
         byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
-        pretokens = [] #list[list[int]]
+        pretokens = []  # list[list[int]]
 
-        # convert pretokens from byte to list[int]
-        for pretoken in pretokens_byte:
+        # Convert pretokens from bytes to list[int] by vocab
+        for i, pretoken in enumerate(byte_pretokens):
+
             new_pretoken = []
 
             if pretoken in byte_special_tokens:
-                index = self.vocab[pretoken]
+                index = inverted_vocab[pretoken]
                 new_pretoken.append(index)
             else:
                 for b in pretoken:
-                    index = self.vocab[bytes([b])]
+                    index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
-            pretokens.extend(new_pretoken)
+            pretokens.append(new_pretoken)
         return self._merge_fast(pretokens)
+        # pretokens_byte = pretokenize(text,self.special_tokens)
+        # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
+        # pretokens = [] #list[list[int]]
+
+        # # convert pretokens from byte to list[int]
+        # for pretoken in pretokens_byte:
+        #     new_pretoken = []
+
+        #     if pretoken in byte_special_tokens:
+        #         index = self.vocab[pretoken]
+        #         new_pretoken.append(index)
+        #     else:
+        #         for b in pretoken:
+        #             index = self.vocab[bytes([b])]
+        #             new_pretoken.append(index)
+
+        #     pretokens.extend(new_pretoken)
+        # return self._merge_fast(pretokens)
 
         # if self.special_tokens == None:
         #     doc_encodes = [self.vocab[char.encode("utf-8",errors="ignore")] for char in text]
@@ -136,7 +176,7 @@ class BPETokenizer(Tokenizer):
                 yield idx
     
     def decode(self,ids:list[int]) -> str:
-        inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
+        # inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
         # byte_sequences = []
 
         # for token_id in ids:
@@ -150,13 +190,13 @@ class BPETokenizer(Tokenizer):
         # return text
         
         return_byte = b''
-        vocab_size = len(inverted_vocab)
+        vocab_size = len(self.vocab)
         replacement_char = "\uFFFD"
         for id in ids:
             if id > vocab_size:
                 return_byte += bytes(replacement_char,encoding="utf-8")
             else:
-                return_byte += inverted_vocab[id]
+                return_byte += self.vocab[id]
 
         return return_byte.decode("utf-8",errors="replace")
         
@@ -223,6 +263,7 @@ class BPETokenizer(Tokenizer):
 
 
 if __name__ == "__main__":
+    ## test code ##
     tokenizer = BPETokenizer.from_files(
         vocab_filepath="tests/fixtures/gpt2_vocab.json",
         merges_filepath="tests/fixtures/gpt2_merges.txt",
