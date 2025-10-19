@@ -62,7 +62,7 @@ class BPETokenizer(Tokenizer):
         else:
             sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
             delimiter_pattern = "|".join(re.escape(token) for token in sorted_special_tokens)
-            parts = re.split(delimiter_pattern,text)
+            parts = re.split('(' + delimiter_pattern + ')',text)
         byte_pretokens = []
         for part in parts:
             str_tokens = re.findall(PAT, part)
@@ -82,6 +82,8 @@ class BPETokenizer(Tokenizer):
                 new_pretoken.append(index)
             else:
                 for b in pretoken:
+                    if bytes([b]) == b' ':
+                        continue
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
@@ -213,9 +215,6 @@ class BPETokenizer(Tokenizer):
                 if right_pair in merge_map:
                     heapq.heappush(positions[right_pair],best_pos)
         return tokens
-
-
-
         
             
 
@@ -225,7 +224,7 @@ if __name__ == "__main__":
     tokenizer = BPETokenizer.from_files(
         vocab_filepath="tests/fixtures/gpt2_vocab.json",
         merges_filepath="tests/fixtures/gpt2_merges.txt",
-        special_tokens=["<|endoftext|>","<|endoftext|><|endoftext|>"]
+        special_tokens=["<|endoftext|>"]
     )
     # print(tokenizer.vocab)
     # print(tokenizer.merges[:100]) 
