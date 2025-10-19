@@ -78,56 +78,57 @@ class BPETokenizer(Tokenizer):
 
         # Convert pretokens from bytes to list[int] by vocab
         for pretoken in byte_pretokens:
-            #new_pretoken = []
+            new_pretoken = []
             if pretoken in byte_special_tokens:
                 index = inverted_vocab[pretoken]
-                pretokens.append(index)
+                new_pretoken.append(index)
             else:
                 for b in pretoken:
-                    index = inverted_vocab[bytes([b])]
-                    pretokens.append(index)
+                    #index = inverted_vocab[bytes([b])]
+                    index = inverted_vocab.get(bytes([b]),0)
+                    new_pretoken.append(index)
 
-            #pretokens.append(new_pretoken)
+            pretokens.append(new_pretoken)
             #pretokens.extend(new_pretoken)
         
         #return self._merge_fast(pretokens,inverted_vocab)
-        # 全局合并？
-        for pair in self.merges:
-            merged_bytes = pair[0] + pair[1]
-            if merged_bytes not in self.vocab:
-                continue
+        # # 全局合并？
+        # for pair in self.merges:
+        #     merged_bytes = pair[0] + pair[1]
+        #     if merged_bytes not in self.vocab:
+        #         continue
 
-            new_idx = inverted_vocab[merged_bytes]
-            new_seq = []
-            i = 0
+        #     new_idx = inverted_vocab[merged_bytes]
+        #     new_seq = []
+        #     i = 0
 
-            while i<len(pretokens):
-                if i + 1<len(pretokens) and self.vocab[pretokens[i]] == pair[0] and self.vocab[pretokens[i+1]] == pair[1]:
-                    new_seq.append(new_idx)
-                    i += 2
-                else:
-                    new_seq.append(pretokens[i])
-                    i+=1
+        #     while i<len(pretokens):
+        #         if i + 1<len(pretokens) and self.vocab[pretokens[i]] == pair[0] and self.vocab[pretokens[i+1]] == pair[1]:
+        #             new_seq.append(new_idx)
+        #             i += 2
+        #         else:
+        #             new_seq.append(pretokens[i])
+        #             i+=1
             
-            pretokens = new_seq # 应用了pair后新的encode sequence
-        return pretokens
+        #     pretokens = new_seq # 应用了pair后新的encode sequence
+        # return pretokens
 
-        # #merge:
-        # for i,pretoken in enumerate(pretokens):
-        #     for pair in self.merges:
-        #         new_idx = inverted_vocab[pair[0] + pair[1]]
-        #         new_token = []
-        #         j = 0
-        #         while j< len(pretoken):
-        #             if j + 1 < len(pretoken) and (self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair:
-        #                 new_token.append(new_idx)
-        #                 j += 2
-        #             else:
-        #                 new_token.append(pretoken[j])
-        #                 j += 1
-        #         pretoken = new_token
-        #     pretokens[i] = pretoken
-        # return [token for pretoken in pretokens for token in pretoken]
+        #merge:
+        for i,pretoken in enumerate(pretokens):
+            for pair in self.merges:
+                new_idx = inverted_vocab[pair[0] + pair[1]]
+                new_token = []
+                j = 0
+                while j< len(pretoken):
+                    if j + 1 < len(pretoken) and (self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair:
+                        new_token.append(new_idx)
+                        j += 2
+                    else:
+                        new_token.append(pretoken[j])
+                        j += 1
+                pretoken = new_token
+            pretokens[i] = pretoken
+        return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
@@ -150,9 +151,12 @@ class BPETokenizer(Tokenizer):
 
 
     def encode_iterable(self,iterable:Iterator[str])->Iterator[int]:
+        # # 写法1
+        # for line in iterable:
+        #     for idx in self.encode(line):
+        #         yield idx
         for line in iterable:
-            for idx in self.encode(line):
-                yield idx
+            yield from self.encode(line)
     
     def decode(self,ids:list[int]) -> str:
         # inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
@@ -173,9 +177,9 @@ class BPETokenizer(Tokenizer):
         replacement_char = "\uFFFD"
         for id in ids:
             if id > vocab_size:
-                tokens = bytes(replacement_char,encoding="utf-8")
+                tokens += bytes(replacement_char,encoding="utf-8")
             else:
-                tokens = self.vocab[id]
+                tokens += self.vocab[id]
         return tokens.decode("utf-8",errors="replace")
         
     def _merge_fast(self,tokens:list[int],inverted_vocab:dict[bytes,int])->list[int]:
@@ -250,6 +254,7 @@ if __name__ == "__main__":
     test_string = "Hello, how <|endoftext|><|endoftext|> are you?<|endoftext|>"
     ids = tokenizer.encode(test_string)
     print(ids)
+    print(tokenizer.decode(ids))
     tokenized_string = [tokenizer.decode([x]) for x in ids]
     print(tokenized_string)
 
