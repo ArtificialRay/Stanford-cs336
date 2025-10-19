@@ -154,6 +154,13 @@ def make_chunk_freq_table(chunk_bytes:bytes,vocab:dict,special_tokens:list[str])
                     pair_freq_table[pair] = 1
     return pair_freq_table,word_freq_table
 
+def select_pair_with_same_tie_breaking(pair_freq):
+    """完全复制标准tokenizer的tie-breaking规则"""
+    max_freq = max(pair_freq.values())
+    candidates = [pair for pair, freq in pair_freq.items() if freq == max_freq]
+    
+    # 标准tokenizer通常按字节值排序
+    return sorted(candidates, key=lambda x: (x[0], x[1]))[0]
 
 def train_bpe(
     input_path: str | os.PathLike,
@@ -204,11 +211,7 @@ def train_bpe(
         vocab[new_index] = c1+c2
         # 每次合并后，只有与合并对相邻的字节对计数会发生变化，其它字节对复用之前的计数
         merge(best_pair,vocab,new_index,glb_pair_freq_table,glb_word_freq_table)
-    
-    # for the convenience of encoding at BPETokenizer, 将vocab的键改为byte, 值改为int
-    return_vocab = dict(zip(vocab.values(), vocab.keys()))
-    del vocab
-    return return_vocab,merges
+    return vocab,merges
 
 # def process_single_chunk(chunk_bytes:bytes,vocab_size:int,special_tokens:list[str]):
 #     # 重新初始化vocab和merges，防止data race
@@ -265,14 +268,11 @@ def train_bpe(
 if __name__ == "__main__":
     ## test multi-processing ##
     import time
-    input_path = "tests/fixtures/" +"tinystories_sample.txt"
+    input_path = "../data/" +"TinyStoriesV2-GPT4-train.txt"
     start_time = time.time()
-    vocab,merges = train_bpe(input_path,vocab_size=500,special_tokens=["<|endoftext|>"])
+    train_bpe(input_path,vocab_size=500,special_tokens=["<|endoftext|>"])
     end_time = time.time()
     print(f"time consumed:{end_time - start_time}")
-    print(vocab)
-    print()
-    print(merges)
 
     ## test single process function ##
     # string = "low low low low low lower lower widest widest widest <|endoftext|> newest newest newest newest newest newest"
