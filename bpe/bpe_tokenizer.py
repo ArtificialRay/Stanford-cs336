@@ -57,7 +57,7 @@ class BPETokenizer(Tokenizer):
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
         inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
-        if self.special_tokens == []:
+        if self.special_tokens == None:
             parts = [text]
         else:
             sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
