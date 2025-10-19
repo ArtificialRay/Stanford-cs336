@@ -102,7 +102,7 @@ class BPETokenizer(Tokenizer):
             i = 0
 
             while i<len(pretokens):
-                if i + 1<len(pretokens) and self.vocab[pretokens[i]] == pair[0] and self.vocab[pretokens[i]] == pair[1]:
+                if i + 1<len(pretokens) and self.vocab[pretokens[i]] == pair[0] and self.vocab[pretokens[i+1]] == pair[1]:
                     new_seq.append(new_idx)
                     i += 2
                 else:
