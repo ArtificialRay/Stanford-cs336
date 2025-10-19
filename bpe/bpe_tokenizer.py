@@ -65,9 +65,13 @@ class BPETokenizer(Tokenizer):
             parts = re.split('(' + delimiter_pattern + ')',text)
         byte_pretokens = []
         for part in parts:
-            str_tokens = re.findall(PAT, part)
-            part_tokens = [s.encode('utf-8') for s in str_tokens]
-            byte_pretokens.extend(part_tokens)
+            if part in self.special_tokens:
+                spec_tok_bytes = part.encode('utf-8')
+                byte_pretokens.extend([spec_tok_bytes])
+            else:
+                str_tokens = re.findall(PAT, part)
+                part_tokens = [s.encode('utf-8') for s in str_tokens]
+                byte_pretokens.extend(part_tokens)
     
         byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
         pretokens = []  # list[list[int]]
