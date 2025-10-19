@@ -62,15 +62,15 @@ class BPETokenizer(Tokenizer):
         else:
             sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
             delimiter_pattern = "|".join(re.escape(token) for token in sorted_special_tokens)
-            parts = re.split('(' + delimiter_pattern + ')',text)
+            parts = re.split('(' + delimiter_pattern + ')',text) # part内就能包括special tokens
         byte_pretokens = []
         for part in parts:
             if part in self.special_tokens:
                 spec_tok_bytes = part.encode('utf-8')
-                byte_pretokens.extend([spec_tok_bytes])
+                byte_pretokens.extend([spec_tok_bytes]) # 如果是special tokens则加入special tokens
             else:
                 str_tokens = re.findall(PAT, part)
-                part_tokens = [s.encode('utf-8') for s in str_tokens]
+                part_tokens = [s.encode('utf-8') for s in str_tokens] # 如果没有则正常decode
                 byte_pretokens.extend(part_tokens)
     
         byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
@@ -78,9 +78,7 @@ class BPETokenizer(Tokenizer):
 
         # Convert pretokens from bytes to list[int] by vocab
         for pretoken in byte_pretokens:
-
             new_pretoken = []
-
             if pretoken in byte_special_tokens:
                 index = inverted_vocab[pretoken]
                 new_pretoken.append(index)
@@ -101,7 +99,7 @@ class BPETokenizer(Tokenizer):
                 new_token = []
                 j = 0
                 while j< len(pretoken):
-                    if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
+                    if j + 1 < len(pretoken) and (self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair:
                         new_token.append(new_idx)
                         j += 2
                     else:
