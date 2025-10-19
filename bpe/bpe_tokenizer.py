@@ -78,38 +78,56 @@ class BPETokenizer(Tokenizer):
 
         # Convert pretokens from bytes to list[int] by vocab
         for pretoken in byte_pretokens:
-            new_pretoken = []
+            #new_pretoken = []
             if pretoken in byte_special_tokens:
                 index = inverted_vocab[pretoken]
-                new_pretoken.append(index)
+                pretokens.append(index)
             else:
                 for b in pretoken:
                     index = inverted_vocab[bytes([b])]
-                    new_pretoken.append(index)
+                    pretokens.append(index)
 
-            pretokens.append(new_pretoken)
+            #pretokens.append(new_pretoken)
             #pretokens.extend(new_pretoken)
         
         #return self._merge_fast(pretokens,inverted_vocab)
         # 全局合并？
-        
-
-        #merge:
         for pair in self.merges:
-            new_idx = inverted_vocab[pair[0] + pair[1]]
-            for i,pretoken in enumerate(pretokens):
-                new_token = []
-                j = 0
-                while j< len(pretoken):
-                    if j + 1 < len(pretoken) and (self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair:
-                        new_token.append(new_idx)
-                        j += 2
-                    else:
-                        new_token.append(pretoken[j])
-                        j += 1
-                pretoken = new_token
-            pretokens[i] = pretoken
-        return [token for pretoken in pretokens for token in pretoken]
+            merged_bytes = pair[0] + pair[1]
+            if merged_bytes not in self.vocab:
+                continue
+
+            new_idx = inverted_vocab[merged_bytes]
+            new_seq = []
+            i = 0
+
+            while i<len(pretokens):
+                if i + 1<len(pretokens) and self.vocab[pretokens[i]] == pair[0] and self.vocab[pretokens[i]] == pair[1]:
+                    new_seq.append(new_idx)
+                    i += 2
+                else:
+                    new_seq.append(pretokens[i])
+                    i+=1
+            
+            pretokens = new_seq # 应用了pair后新的encode sequence
+        return pretokens
+
+        # #merge:
+        # for i,pretoken in enumerate(pretokens):
+        #     for pair in self.merges:
+        #         new_idx = inverted_vocab[pair[0] + pair[1]]
+        #         new_token = []
+        #         j = 0
+        #         while j< len(pretoken):
+        #             if j + 1 < len(pretoken) and (self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair:
+        #                 new_token.append(new_idx)
+        #                 j += 2
+        #             else:
+        #                 new_token.append(pretoken[j])
+        #                 j += 1
+        #         pretoken = new_token
+        #     pretokens[i] = pretoken
+        # return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
