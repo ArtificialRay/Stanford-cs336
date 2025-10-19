@@ -67,7 +67,7 @@ class BPETokenizer(Tokenizer):
         for part in parts:
             if part in self.special_tokens:
                 spec_tok_bytes = part.encode('utf-8')
-                byte_pretokens.extend(spec_tok_bytes) # 如果是special tokens则加入special tokens
+                byte_pretokens.extend([spec_tok_bytes]) # 如果是special tokens则加入special tokens
             else:
                 str_tokens = re.findall(PAT, part)
                 part_tokens = [s.encode('utf-8') for s in str_tokens] # 如果没有则正常decode
@@ -229,9 +229,10 @@ if __name__ == "__main__":
     # print(tokenizer.vocab)
     # print(tokenizer.merges[:100]) 
 
-    with open("tests/fixtures/address.txt") as f:
-        corpus_contents = f.read()
-    ids = tokenizer.encode(corpus_contents)
+    # with open("tests/fixtures/address.txt") as f:
+    #     corpus_contents = f.read()
+    test_string = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
+    ids = tokenizer.encode(test_string)
     print(ids)
     print(tokenizer.decode(ids))
     tokenized_string = [tokenizer.decode([x]) for x in ids]
