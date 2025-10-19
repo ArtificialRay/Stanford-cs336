@@ -24,61 +24,6 @@ def merge(byte_text:str,new_idx:int,pair:tuple[bytes,bytes])->list[int]:
             i += 1
     return doc_encode
 
-def split_by_special_tokens(text:str,special_tokens:list[str])->list[str]:
-    """
-    Split on the special tokens
-    example: 
-        text = "Hello world! <|endoftext|> Great!" 
-        special_tokens = "<|endoftext|>"
-        result = ['Hello world! ', '<|endoftext|>', ' Great!']
-    """
-    sorted_special_tokens = sorted(special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
-    if special_tokens == None:
-        parts = [text]
-    else:
-        delimiter_pattern = "|".join(re.escape(token) for token in sorted_special_tokens)
-        parts = re.split('('+delimiter_pattern+')',text)
-    return parts
-
-# def pretokenize(text:str,special_tokens:list[str])->list[bytes]:
-#     """
-#     separating text into pretokens, and treat special token as independent pre_tokens
-#     """
-#     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-#     parts = split_by_special_tokens(text,special_tokens)
-#     token_list = []
-#     for part in parts:
-#         if part == b'':
-#             continue
-#         if part in special_tokens:
-#             token_list.extend([part.encode('utf-8',errors="ignore")])
-#         else:
-#             str_tokens = re.finditer(PAT,part)
-#             part_tokens = [s.group().encode('utf-8',errors="ignore") for s in str_tokens]
-#             token_list.extend(part_tokens)
-#     return token_list
-
-def pretokenize(text: str, special_tokens: list[str], drop_special_token: bool = True) -> list[bytes]:
-    """
-    Seperating text into pretokens
-    Special tokens are independent pretokens
-    """
-    parts = split_by_special_tokens(text, special_tokens)
-
-    tokens_list = []
-    for part in parts:
-        if part in special_tokens:
-            if not drop_special_token:  # Keep special tokens, otherwise ignore
-                spec_tok_bytes = part.encode('utf-8')
-                tokens_list.append([spec_tok_bytes])
-        else:
-            str_tokens = re.findall(PAT, part)
-            part_tokens = [s.encode('utf-8') for s in str_tokens]
-            tokens_list.append(part_tokens)
-    tokens = [token for part_tokens in tokens_list for token in part_tokens]
-    return tokens
-
-
 class Tokenizer:
     """Abstract inferface of tokenizer """
     def encode(self, string: str) -> list[int]:
@@ -140,27 +85,27 @@ class BPETokenizer(Tokenizer):
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
-            #pretokens.append(new_pretoken)
-            pretokens.extend(new_pretoken)
+            pretokens.append(new_pretoken)
+            #pretokens.extend(new_pretoken)
         
-        return self._merge_fast(pretokens,inverted_vocab)
+        #return self._merge_fast(pretokens,inverted_vocab)
 
         #merge:
-        # for i,pretoken in enumerate(pretokens):
-        #     for pair in self.merges:
-        #         new_idx = inverted_vocab[pair[0] + pair[1]]
-        #         new_token = []
-        #         j = 0
-        #         while j< len(pretoken):
-        #             if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
-        #                 new_token.append(new_idx)
-        #                 j += 2
-        #             else:
-        #                 new_token.append(pretoken[j])
-        #                 j += 1
-        #         pretoken = new_token
-        #     pretokens[i] = pretoken
-        # return [token for pretoken in pretokens for token in pretoken]
+        for i,pretoken in enumerate(pretokens):
+            for pair in self.merges:
+                new_idx = inverted_vocab[pair[0] + pair[1]]
+                new_token = []
+                j = 0
+                while j< len(pretoken):
+                    if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
+                        new_token.append(new_idx)
+                        j += 2
+                    else:
+                        new_token.append(pretoken[j])
+                        j += 1
+                pretoken = new_token
+            pretokens[i] = pretoken
+        return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
