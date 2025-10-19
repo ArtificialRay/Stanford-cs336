@@ -99,6 +99,7 @@ class BPETokenizer(Tokenizer):
                 j = 0
                 while j< len(pretoken):
                     if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
+                    #if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
                         new_token.append(new_idx)
                         j += 2
                     else:
