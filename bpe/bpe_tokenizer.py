@@ -36,6 +36,9 @@ class BPETokenizer(Tokenizer):
         self.vocab = vocab
         self.merges = merges
         self.special_tokens = special_tokens or []
+        self.inverted_vocab = {v: k for k, v in vocab.items()}
+        # 预计算字节形式的特殊token
+        self.byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
 
     @classmethod
     def from_files(cls,vocab_filepath,merges_filepath,special_tokens=None):
@@ -56,7 +59,6 @@ class BPETokenizer(Tokenizer):
     
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
-        inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
         if self.special_tokens == []:
             parts = [text]
         else:
@@ -73,19 +75,18 @@ class BPETokenizer(Tokenizer):
                 part_tokens = [s.encode('utf-8') for s in str_tokens] # 如果没有则正常decode
                 byte_pretokens.extend(part_tokens)
     
-        byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
         pretokens = []  # list[list[int]]
 
         # Convert pretokens from bytes to list[int] by vocab
         for pretoken in byte_pretokens:
             new_pretoken = []
-            if pretoken in byte_special_tokens:
-                index = inverted_vocab[pretoken]
+            if pretoken in self.byte_special_tokens:
+                index = self.inverted_vocab[pretoken]
                 new_pretoken.append(index)
             else:
                 for b in pretoken:
                     #index = inverted_vocab[bytes([b])]
-                    index = inverted_vocab.get(bytes([b]),0)
+                    index = self.inverted_vocab.get(bytes([b]),0)
                     new_pretoken.append(index)
 
             pretokens.append(new_pretoken)
