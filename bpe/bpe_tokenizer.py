@@ -57,7 +57,7 @@ class BPETokenizer(Tokenizer):
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
         inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
-        if self.special_tokens == None:
+        if self.special_tokens == []:
             parts = [text]
         else:
             sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
@@ -225,15 +225,14 @@ if __name__ == "__main__":
     tokenizer = BPETokenizer.from_files(
         vocab_filepath="tests/fixtures/gpt2_vocab.json",
         merges_filepath="tests/fixtures/gpt2_merges.txt",
-        special_tokens=["<|endoftext|>"]
     )
     # print(tokenizer.vocab)
     # print(tokenizer.merges[:100]) 
 
-    # with open("tests/fixtures/address.txt") as f:
-    #     corpus_contents = f.read()
-    test_string = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
-    ids = tokenizer.encode(test_string)
+    with open("tests/fixtures/address.txt") as f:
+        corpus_contents = f.read()
+    #test_string = "Héllò hôw <|endoftext|><|endoftext|> are ü? 🙃<|endoftext|>"
+    ids = tokenizer.encode(corpus_contents)
     print(ids)
     print(tokenizer.decode(ids))
     tokenized_string = [tokenizer.decode([x]) for x in ids]
