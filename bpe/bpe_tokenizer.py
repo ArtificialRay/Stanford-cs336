@@ -90,7 +90,7 @@ class BPETokenizer(Tokenizer):
     def __init__(self,vocab:dict[int,bytes],merges:list[tuple[bytes,bytes]],special_tokens:list[str]|None=None):
         self.vocab = vocab
         self.merges = merges
-        self.special_tokens = special_tokens
+        self.special_tokens = special_tokens or []
 
     @classmethod
     def from_files(cls,vocab_filepath,merges_filepath,special_tokens=None):
