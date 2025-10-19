@@ -90,7 +90,7 @@ class BPETokenizer(Tokenizer):
     def __init__(self,vocab:dict[int,bytes],merges:list[tuple[bytes,bytes]],special_tokens:list[str]|None=None):
         self.vocab = vocab
         self.merges = merges
-        self.special_tokens = special_tokens or []
+        self.special_tokens = special_tokens
 
     @classmethod
     def from_files(cls,vocab_filepath,merges_filepath,special_tokens=None):
@@ -112,7 +112,18 @@ class BPETokenizer(Tokenizer):
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
         inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
-        byte_pretokens = pretokenize(text, self.special_tokens, drop_special_token=False)   # list[bytes]
+        sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
+        if self.special_tokens == None:
+            parts = [text]
+        else:
+            delimiter_pattern = "|".join(re.escape(token) for token in sorted_special_tokens)
+            parts = re.split(delimiter_pattern,text)
+        byte_pretokens = []
+        for i,part in enumerate(parts):
+            str_tokens = re.findall(PAT, part)
+            part_tokens = [s.encode('utf-8') for s in str_tokens]
+            byte_pretokens.extend(part_tokens)
+    
         byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
         pretokens = []  # list[list[int]]
 
@@ -129,27 +140,27 @@ class BPETokenizer(Tokenizer):
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
-            pretokens.append(new_pretoken)
-            #pretokens.extend(new_pretoken)
+            #pretokens.append(new_pretoken)
+            pretokens.extend(new_pretoken)
         
-        #return self._merge_fast(pretokens,inverted_vocab)
+        return self._merge_fast(pretokens,inverted_vocab)
 
         #merge:
-        for i,pretoken in enumerate(pretokens):
-            for pair in self.merges:
-                new_idx = inverted_vocab[pair[0] + pair[1]]
-                new_token = []
-                j = 0
-                while j< len(pretoken):
-                    if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
-                        new_token.append(new_idx)
-                        j += 2
-                    else:
-                        new_token.append(pretoken[j])
-                        j += 1
-                pretoken = new_token
-            pretokens[i] = pretoken
-        return [token for pretoken in pretokens for token in pretoken]
+        # for i,pretoken in enumerate(pretokens):
+        #     for pair in self.merges:
+        #         new_idx = inverted_vocab[pair[0] + pair[1]]
+        #         new_token = []
+        #         j = 0
+        #         while j< len(pretoken):
+        #             if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
+        #                 new_token.append(new_idx)
+        #                 j += 2
+        #             else:
+        #                 new_token.append(pretoken[j])
+        #                 j += 1
+        #         pretoken = new_token
+        #     pretokens[i] = pretoken
+        # return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
@@ -170,24 +181,6 @@ class BPETokenizer(Tokenizer):
         #     pretokens.extend(new_pretoken)
         # return self._merge_fast(pretokens)
 
-        # if self.special_tokens == None:
-        #     doc_encodes = [self.vocab[char.encode("utf-8",errors="ignore")] for char in text]
-        #     doc_encodes = self._merge_fast(doc_encodes)
-        #     del doc
-        #     return doc_encodes
-        # else:
-        #     delimiter_pattern = "|".join(re.escape(token) for token in self.special_tokens)
-        #     docs = (re.split(delimiter_pattern,text))
-        #     doc_encodes = []
-        #     for i,doc in enumerate(docs):
-        #         doc = [self.vocab[char.encode("utf-8",errors="ignore")] for char in doc if char != ' ']
-        #         doc_encodes.extend(self._merge_fast(doc))
-        #         del doc
-        #         if i<len(docs)-1 and i<len(self.special_tokens):
-        #             special_token_id = self.vocab[self.special_tokens[i].encode("utf-8",errors="ignore")]
-        #             doc_encodes.append(special_token_id)
-
-        # return doc_encodes
 
     def encode_iterable(self,iterable:Iterator[str])->Iterator[int]:
         for line in iterable:
@@ -235,7 +228,7 @@ class BPETokenizer(Tokenizer):
         # apply merge to positions, 从最先出现的pair开始合并
         while positions:
             best_pair = None
-            best_pos = int('inf') # 整个文段中第一个出现merged pair的位置
+            best_pos = float('inf') # 整个文段中第一个出现merged pair的位置
             for pair,pos_list in positions.items():
                 # 如果存在pos_list，即pair是可以被合并的，就找这个pair最先出现的位置
                 if pos_list and pos_list[0] < best_pos:
