@@ -32,10 +32,11 @@ def split_by_special_tokens(text:str,special_tokens:list[str])->list[str]:
         special_tokens = "<|endoftext|>"
         result = ['Hello world! ', '<|endoftext|>', ' Great!']
     """
+    sorted_special_tokens = sorted(special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
     if special_tokens == None:
         parts = [text]
     else:
-        delimiter_pattern = "|".join(re.escape(token) for token in sorted(special_tokens))
+        delimiter_pattern = "|".join(re.escape(token) for token in sorted_special_tokens)
         parts = re.split('('+delimiter_pattern+')',text)
     return parts
 
@@ -64,7 +65,6 @@ def pretokenize(text: str, special_tokens: list[str], drop_special_token: bool =
     """
     parts = split_by_special_tokens(text, special_tokens)
 
-    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     tokens_list = []
     for part in parts:
         if part in special_tokens:
@@ -129,27 +129,27 @@ class BPETokenizer(Tokenizer):
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
-            #pretokens.append(new_pretoken)
-            pretokens.extend(new_pretoken)
+            pretokens.append(new_pretoken)
+            #pretokens.extend(new_pretoken)
         
-        return self._merge_fast(pretokens,inverted_vocab)
+        #return self._merge_fast(pretokens,inverted_vocab)
 
         # merge:
-        # for i,pretoken in enumerate(pretokens):
-        #     for pair in self.merges:
-        #         new_idx = inverted_vocab[pair[0] + pair[1]]
-        #         new_token = []
-        #         j = 0
-        #         while j< len(pretoken):
-        #             if j + 1 < len(pretoken) and pretoken[j] == pair[0] and pretoken[j + 1] == pair[1]:
-        #                 new_token.append(new_idx)
-        #                 j += 2
-        #             else:
-        #                 new_token.append(pretoken[j])
-        #                 j += 1
-        #         pretoken = new_token
-        #     pretokens[i] = pretoken
-        # return [token for pretoken in pretokens for token in pretoken]
+        for i,pretoken in enumerate(pretokens):
+            for pair in self.merges:
+                new_idx = inverted_vocab[pair[0] + pair[1]]
+                new_token = []
+                j = 0
+                while j< len(pretoken):
+                    if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
+                        new_token.append(new_idx)
+                        j += 2
+                    else:
+                        new_token.append(pretoken[j])
+                        j += 1
+                pretoken = new_token
+            pretokens[i] = pretoken
+        return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
@@ -228,7 +228,7 @@ class BPETokenizer(Tokenizer):
         # all possible merged positions
         positions = defaultdict(list)
         for i in range(len(tokens)-1):
-            pair = (tokens[i],tokens[i+1])
+            pair = (self.vocab[tokens[i]],self.vocab[tokens[i+1]])
             if pair in merge_map:
                 heapq.heappush(positions[pair],i)
         
@@ -292,7 +292,7 @@ if __name__ == "__main__":
     # print(tokenizer.vocab)
     # print(tokenizer.merges[:100]) 
 
-    test_string = "Hello, how are you?"
+    test_string = "Hello, how <|endoftext|><|endoftext|> are you?<|endoftext|>"
     ids = tokenizer.encode(test_string)
     print(ids)
     tokenized_string = [tokenizer.decode([x]) for x in ids]
