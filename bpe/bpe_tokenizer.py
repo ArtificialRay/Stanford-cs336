@@ -57,7 +57,7 @@ class BPETokenizer(Tokenizer):
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
         inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
-        if self.special_tokens == None:
+        if self.special_tokens == []:
             parts = [text]
         else:
             sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
@@ -67,7 +67,7 @@ class BPETokenizer(Tokenizer):
         for part in parts:
             if part in self.special_tokens:
                 spec_tok_bytes = part.encode('utf-8')
-                byte_pretokens.extend([spec_tok_bytes]) # 如果是special tokens则加入special tokens
+                byte_pretokens.extend(spec_tok_bytes) # 如果是special tokens则加入special tokens
             else:
                 str_tokens = re.findall(PAT, part)
                 part_tokens = [s.encode('utf-8') for s in str_tokens] # 如果没有则正常decode
@@ -91,28 +91,6 @@ class BPETokenizer(Tokenizer):
             pretokens.append(new_pretoken)
             #pretokens.extend(new_pretoken)
         
-        #return self._merge_fast(pretokens,inverted_vocab)
-        # # 全局合并？
-        # for pair in self.merges:
-        #     merged_bytes = pair[0] + pair[1]
-        #     if merged_bytes not in self.vocab:
-        #         continue
-
-        #     new_idx = inverted_vocab[merged_bytes]
-        #     new_seq = []
-        #     i = 0
-
-        #     while i<len(pretokens):
-        #         if i + 1<len(pretokens) and self.vocab[pretokens[i]] == pair[0] and self.vocab[pretokens[i+1]] == pair[1]:
-        #             new_seq.append(new_idx)
-        #             i += 2
-        #         else:
-        #             new_seq.append(pretokens[i])
-        #             i+=1
-            
-        #     pretokens = new_seq # 应用了pair后新的encode sequence
-        # return pretokens
-
         #merge:
         for i,pretoken in enumerate(pretokens):
             for pair in self.merges:
@@ -120,7 +98,7 @@ class BPETokenizer(Tokenizer):
                 new_token = []
                 j = 0
                 while j< len(pretoken):
-                    if j + 1 < len(pretoken) and (self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair:
+                    if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
                         new_token.append(new_idx)
                         j += 2
                     else:
@@ -251,8 +229,9 @@ if __name__ == "__main__":
     # print(tokenizer.vocab)
     # print(tokenizer.merges[:100]) 
 
-    test_string = "Hello, how <|endoftext|><|endoftext|> are you?<|endoftext|>"
-    ids = tokenizer.encode(test_string)
+    with open("tests/fixtures/address.txt") as f:
+        corpus_contents = f.read()
+    ids = tokenizer.encode(corpus_contents)
     print(ids)
     print(tokenizer.decode(ids))
     tokenized_string = [tokenizer.decode([x]) for x in ids]
