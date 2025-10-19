@@ -95,7 +95,7 @@ class BPETokenizer(Tokenizer):
         #merge:
         for i,pretoken in enumerate(pretokens):
             for pair in self.merges:
-                new_idx = inverted_vocab[pair[0] + pair[1]]
+                new_idx = self.inverted_vocab[pair[0] + pair[1]]
                 new_token = []
                 j = 0
                 while j< len(pretoken):
