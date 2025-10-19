@@ -129,27 +129,27 @@ class BPETokenizer(Tokenizer):
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
-            #pretokens.append(new_pretoken)
-            pretokens.extend(new_pretoken)
+            pretokens.append(new_pretoken)
+            #pretokens.extend(new_pretoken)
         
-        return self._merge_fast(pretokens,inverted_vocab)
+        #return self._merge_fast(pretokens,inverted_vocab)
 
-        # merge:
-        # for i,pretoken in enumerate(pretokens):
-        #     for pair in self.merges:
-        #         new_idx = inverted_vocab[pair[0] + pair[1]]
-        #         new_token = []
-        #         j = 0
-        #         while j< len(pretoken):
-        #             if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
-        #                 new_token.append(new_idx)
-        #                 j += 2
-        #             else:
-        #                 new_token.append(pretoken[j])
-        #                 j += 1
-        #         pretoken = new_token
-        #     pretokens[i] = pretoken
-        # return [token for pretoken in pretokens for token in pretoken]
+        #merge:
+        for i,pretoken in enumerate(pretokens):
+            for pair in self.merges:
+                new_idx = inverted_vocab[pair[0] + pair[1]]
+                new_token = []
+                j = 0
+                while j< len(pretoken):
+                    if j + 1 < len(pretoken) and self.vocab[pretoken[j]] == pair[0] and self.vocab[pretoken[j + 1]] == pair[1]:
+                        new_token.append(new_idx)
+                        j += 2
+                    else:
+                        new_token.append(pretoken[j])
+                        j += 1
+                pretoken = new_token
+            pretokens[i] = pretoken
+        return [token for pretoken in pretokens for token in pretoken]
         
         # pretokens_byte = pretokenize(text,self.special_tokens)
         # byte_special_tokens = [token.encode('utf-8') for token in self.special_tokens]
