@@ -86,8 +86,6 @@ class BPETokenizer(Tokenizer):
                 new_pretoken.append(index)
             else:
                 for b in pretoken:
-                    if bytes([b]) == b' ':
-                        continue
                     index = inverted_vocab[bytes([b])]
                     new_pretoken.append(index)
 
