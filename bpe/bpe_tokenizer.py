@@ -93,27 +93,27 @@ class BPETokenizer(Tokenizer):
             #pretokens.extend(new_pretoken)
         
         #merge:
-        # for i,pretoken in enumerate(pretokens):
-        #     for pair in self.merges:
-        #         new_idx = self.inverted_vocab[pair[0] + pair[1]]
-        #         if new_idx == 15137:
-        #             print("hey!")
-        #         new_token = []
-        #         j = 0
-        #         while j< len(pretoken):
-        #             if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
-        #             #if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
-        #                 new_token.append(new_idx)
-        #                 j += 2
-        #             else:
-        #                 new_token.append(pretoken[j])
-        #                 j += 1
-        #         # if new_token[0] == 15137:
-        #         #     print("hey!")
-        #         pretoken = new_token
-        #     pretokens[i] = pretoken
         for i,pretoken in enumerate(pretokens):
-            pretokens[i] = self._merge_fast(pretoken,self.inverted_vocab)
+            for pair in self.merges:
+                new_idx = self.inverted_vocab[pair[0] + pair[1]]
+                if new_idx == 15137:
+                    print("hey!")
+                new_token = []
+                j = 0
+                while j< len(pretoken):
+                    if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
+                    #if j + 1 < len(pretoken) and ((self.vocab[pretoken[j]] , self.vocab[pretoken[j + 1]]) == pair):
+                        new_token.append(new_idx)
+                        j += 2
+                    else:
+                        new_token.append(pretoken[j])
+                        j += 1
+                # if new_token[0] == 15137:
+                #     print("hey!")
+                pretoken = new_token
+            pretokens[i] = pretoken
+        # for i,pretoken in enumerate(pretokens):
+        #     pretokens[i] = self._merge_fast(pretoken,self.inverted_vocab)
         return [token for pretoken in pretokens for token in pretoken]
         
         
