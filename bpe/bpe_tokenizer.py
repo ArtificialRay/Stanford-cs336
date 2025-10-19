@@ -91,11 +91,13 @@ class BPETokenizer(Tokenizer):
             #pretokens.extend(new_pretoken)
         
         #return self._merge_fast(pretokens,inverted_vocab)
+        # 全局合并？
+        
 
         #merge:
-        for i,pretoken in enumerate(pretokens):
-            for pair in self.merges:
-                new_idx = inverted_vocab[pair[0] + pair[1]]
+        for pair in self.merges:
+            new_idx = inverted_vocab[pair[0] + pair[1]]
+            for i,pretoken in enumerate(pretokens):
                 new_token = []
                 j = 0
                 while j< len(pretoken):
@@ -152,12 +154,10 @@ class BPETokenizer(Tokenizer):
         vocab_size = len(self.vocab)
         replacement_char = "\uFFFD"
         for id in ids:
-            return_byte = b''
             if id > vocab_size:
-                return_byte += bytes(replacement_char,encoding="utf-8")
+                tokens = bytes(replacement_char,encoding="utf-8")
             else:
-                return_byte += self.vocab[id]
-            tokens += return_byte
+                tokens = self.vocab[id]
         return tokens.decode("utf-8",errors="replace")
         
     def _merge_fast(self,tokens:list[int],inverted_vocab:dict[bytes,int])->list[int]:
