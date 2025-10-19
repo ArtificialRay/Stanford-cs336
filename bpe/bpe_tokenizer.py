@@ -112,14 +112,14 @@ class BPETokenizer(Tokenizer):
     def encode(self,text:str)->list[int]:
         # pre-tokenize text
         inverted_vocab = dict(zip(self.vocab.values(),self.vocab.keys()))
-        sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
         if self.special_tokens == None:
             parts = [text]
         else:
+            sorted_special_tokens = sorted(self.special_tokens,key=lambda x: -len(x)) # 更长的special token会排在前面
             delimiter_pattern = "|".join(re.escape(token) for token in sorted_special_tokens)
             parts = re.split(delimiter_pattern,text)
         byte_pretokens = []
-        for i,part in enumerate(parts):
+        for part in parts:
             str_tokens = re.findall(PAT, part)
             part_tokens = [s.encode('utf-8') for s in str_tokens]
             byte_pretokens.extend(part_tokens)
