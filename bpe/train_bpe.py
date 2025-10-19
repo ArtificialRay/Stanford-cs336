@@ -154,14 +154,6 @@ def make_chunk_freq_table(chunk_bytes:bytes,vocab:dict,special_tokens:list[str])
                     pair_freq_table[pair] = 1
     return pair_freq_table,word_freq_table
 
-def select_pair_with_same_tie_breaking(pair_freq):
-    """完全复制标准tokenizer的tie-breaking规则"""
-    max_freq = max(pair_freq.values())
-    candidates = [pair for pair, freq in pair_freq.items() if freq == max_freq]
-    
-    # 标准tokenizer通常按字节值排序
-    return sorted(candidates, key=lambda x: (x[0], x[1]))[0]
-
 def train_bpe(
     input_path: str | os.PathLike,
     vocab_size: int,
